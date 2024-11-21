@@ -104,13 +104,7 @@ class Grid:
     def set_cells(self, cells):
         self.cells = cells
 
-    def print_grid(self):
-        print('-' * 40)
-        for i in range(self.size):
-            for j in range(self.size):
-                print('%d\t' % self.cells[i][j], end='')
-            print()
-        print('-' * 40)
+ 
 
     def clone_grid(self):
         new_grid = Grid(grid.size)
@@ -237,10 +231,9 @@ class Game:
             return
 
         self.panel.paint()
-        self.panel.root.update()  # Update the GUI
+        self.panel.root.update() 
 
         print('Score: {}'.format(self.grid.current_score))
-        self.grid.print_grid()  # Debug print to show the grid state
         if self.grid.found_2048():
             self.you_win()
             if not self.keep_playing:
