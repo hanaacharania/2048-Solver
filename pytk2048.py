@@ -1,17 +1,14 @@
 from __future__ import print_function
-try:
-    import tkinter as tk # For Python 3
-    import tkinter.messagebox as messagebox
-except:
-    import Tkinter as tk # For Python 2
-    import tkMessageBox as messagebox
+
+import tkinter as tk 
+import tkinter.messagebox as messagebox
 import sys
 import random
-
+import time
+from expectimax import ExpectimaxAI
 
 class Grid:
-    '''The data structure representation of the 2048 game.
-    '''
+    '''The data structure representation of the 2048 game.'''
     def __init__(self, n):
         self.size = n
         self.cells = self.generate_empty_grid()
@@ -115,6 +112,11 @@ class Grid:
             print()
         print('-' * 40)
 
+    def clone_grid(self):
+        new_grid = Grid(grid.size)
+        new_grid.set_cells([row[:] for row in grid.cells])
+        return new_grid
+
 
 class GamePanel:
     '''The GUI view class of the 2048 game showing via tkinter.'''
@@ -150,10 +152,6 @@ class GamePanel:
         'beyond': '#f9f6f2'
     }
     FONT = ('Verdana', 24, 'bold')
-    UP_KEYS = ('w', 'W', 'Up')
-    LEFT_KEYS = ('a', 'A', 'Left')
-    DOWN_KEYS = ('s', 'S', 'Down')
-    RIGHT_KEYS = ('d', 'D', 'Right')
 
     def __init__(self, grid):
         self.grid = grid
@@ -204,6 +202,7 @@ class Game:
         self.over = False
         self.won = False
         self.keep_playing = False
+        self.ai = ExpectimaxAI(self.grid) 
 
     def is_game_terminated(self):
         return self.over or (self.won and (not self.keep_playing))
@@ -211,8 +210,7 @@ class Game:
     def start(self):
         self.add_start_cells()
         self.panel.paint()
-        self.panel.root.bind('<Key>', self.key_handler)
-        self.panel.root.mainloop()
+        self.run_ai()  
 
     def add_start_cells(self):
         for i in range(self.start_cells_num):
@@ -221,26 +219,28 @@ class Game:
     def can_move(self):
         return self.grid.has_empty_cells() or self.grid.can_merge()
 
-    def key_handler(self, event):
+    def run_ai(self):
         if self.is_game_terminated():
             return
 
         self.grid.clear_flags()
-        key_value = event.keysym
-        print('{} key pressed'.format(key_value))
-        if key_value in GamePanel.UP_KEYS:
+        move = self.ai.get_best_move() 
+        if move == 'up':
             self.up()
-        elif key_value in GamePanel.LEFT_KEYS:
+        elif move == 'left':
             self.left()
-        elif key_value in GamePanel.DOWN_KEYS:
+        elif move == 'down':
             self.down()
-        elif key_value in GamePanel.RIGHT_KEYS:
+        elif move == 'right':
             self.right()
         else:
-            pass
+            return
 
         self.panel.paint()
+        self.panel.root.update()  # Update the GUI
+
         print('Score: {}'.format(self.grid.current_score))
+        self.grid.print_grid()  # Debug print to show the grid state
         if self.grid.found_2048():
             self.you_win()
             if not self.keep_playing:
@@ -253,6 +253,9 @@ class Game:
         if not self.can_move():
             self.over = True
             self.game_over()
+            return
+
+        self.panel.root.after(100, self.run_ai)  
 
     def you_win(self):
         if not self.won:
@@ -306,3 +309,4 @@ if __name__ == '__main__':
     panel = GamePanel(grid)
     game2048 = Game(grid, panel)
     game2048.start()
+    panel.root.mainloop() 
