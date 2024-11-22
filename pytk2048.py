@@ -218,7 +218,7 @@ class Game:
             return
 
         self.grid.clear_flags()
-        move = self.ai.get_best_move() 
+        move = self.ai.getAction(grid) 
         if move == 'up':
             self.up()
         elif move == 'left':
