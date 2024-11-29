@@ -29,6 +29,7 @@ class Grid:
             for j in range(self.size):
                 if self.cells[i][j] == 0:
                     empty_cells.append((i, j))
+
         return empty_cells
 
     def generate_empty_grid(self):
@@ -264,6 +265,7 @@ class Game:
             self.left(grid_copy)
         elif action == 'right':
             self.right(grid_copy)
+            
         return grid_copy  # return the simulated grid
 
 

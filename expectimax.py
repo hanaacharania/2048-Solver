@@ -2,11 +2,11 @@ actions = ['up', 'down', 'left', 'right']
 
 class ExpectimaxAI:
 
-    def __init__(self, game, depth=2):
+    def __init__(self, game, depth=3):
         self.game = game
         self.depth = depth
 
-    def getAction(self):
+    def getAction(self, game):
         """
         Returns the expectimax action using self.depth and self.evaluationFunction
 
@@ -18,7 +18,7 @@ class ExpectimaxAI:
             if depth == 0 or self.is_terminal(state):
                 return self.evaluationFunction(state)
 
-            # if the agent is max (AI's turn)
+            # if the agent is max
             if agentIndex == 0:  
                 maxVal = float('-inf')
                 for action in actions:
@@ -51,9 +51,6 @@ class ExpectimaxAI:
                     bestAction = action
         print(f"Best move: {bestAction}, Best score: {bestScore}")
         return bestAction
-
-    def evaluationFunction(self, grid): 
-        return self.calculate_score(grid)
     
     def calculate_smoothness(self, grid): # smoothness heuristic = tries to minimize the difference between adjacent tiles
         smoothness = 0
@@ -64,12 +61,72 @@ class ExpectimaxAI:
                 if grid.cells[j][i] != 0:
                     smoothness -= abs(grid.cells[j][i] - grid.cells[j + 1][i]) # vertical smoothness
         return smoothness
+    
+    # penalty for tiles in middle
+    def mid_tile_penalty(self, grid):
+        penalty = 0
+        for i in range(grid.size):
+            for j in range(grid.size):
+                value = grid.cells[i][j]
+                if value != 0:
+                    distance = min(i, grid.size - 1 - i) + min(j, grid.size - 1 - j)
+                    penalty += distance * value
+        return penalty
+    
+    def monotonicity(self, grid):
+        best = -1
+        def rotate_90_clockwise(cells):
+            return [list(row) for row in zip(*cells[::-1])]
 
+        cells = grid.cells
+
+        for _ in range(4): # rotate 4 times to check all directions
+            current = 0
+            
+            # row monotonicity
+            for row in range(len(cells)):
+                for col in range(len(cells[row]) - 1):
+                    if cells[row][col] >= cells[row][col + 1]:
+                        current += 1
+
+            # column monotonicity
+            for col in range(len(cells[0])):
+                for row in range(len(cells) - 1):
+                    if cells[row][col] >= cells[row + 1][col]:
+                        current += 1
+            
+            if current > best:
+                best = current
+            
+            cells = rotate_90_clockwise(cells)
+        
+        return best
+        
+    def corner_heuristic(self, grid):
+        max_tile = max(max(row) for row in grid.cells)
+        corners = [
+            grid.cells[0][0], grid.cells[0][grid.size - 1],
+            grid.cells[grid.size - 1][0], grid.cells[grid.size - 1][grid.size - 1]
+        ]
+        return 1 if max_tile in corners else 0
+    
+    def evaluationFunction(self, grid): 
+        return self.calculate_score(grid)
+    
     def calculate_score(self, grid):
-        max_tile = max(max(row) for row in grid.cells) # max tile in the grid
         empty_cells = len(grid.retrieve_empty_cells()) # number of empty cells
-        smoothness = self.calculate_smoothness(grid) # smoothness heuristic
-        return max_tile + empty_cells + smoothness # score = max tile + empty cells + smoothness
+        corner_score = self.corner_heuristic(grid)
+        smoothness = self.calculate_smoothness(grid)
+        border_penalty = self.mid_tile_penalty(grid)
+        monotonicity_score = self.monotonicity(grid)
+        score = ( 
+                 100 * empty_cells + 
+                 corner_score +
+                 smoothness +
+                 1000 + monotonicity_score +
+                 -5 * border_penalty)
+
+        return score 
 
     def is_terminal(self, grid):
         return grid.found_2048() or (not grid.has_empty_cells() and not grid.can_merge()) # terminal state if 2048 tile is found or no empty cells and no possible merges
