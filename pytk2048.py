@@ -196,7 +196,7 @@ class Game:
         self.over = False
         self.won = False
         self.keep_playing = False
-        self.ai = ExpectimaxAI(self.grid) 
+        self.ai = ExpectimaxAI(self) 
 
     def is_game_terminated(self):
         return self.over or (self.won and (not self.keep_playing))
@@ -212,23 +212,26 @@ class Game:
 
     def can_move(self):
         return self.grid.has_empty_cells() or self.grid.can_merge()
+    
+    def apply_action(self, action):
+        # apply the action to the grid
+        if action == 'up':
+            self.up(self.grid)
+        elif action == 'down':
+            self.down(self.grid)
+        elif action == 'left':
+            self.left(self.grid)
+        elif action == 'right':
+            self.right(self.grid)
 
     def run_ai(self):
         if self.is_game_terminated():
             return
 
         self.grid.clear_flags()
-        move = self.ai.getAction(grid) 
-        if move == 'up':
-            self.up()
-        elif move == 'left':
-            self.left()
-        elif move == 'down':
-            self.down()
-        elif move == 'right':
-            self.right()
-        else:
-            return
+        move = self.ai.getAction(self) 
+        if move:
+            self.apply_action(move)
 
         self.panel.paint()
         self.panel.root.update() 
@@ -250,6 +253,20 @@ class Game:
 
         self.panel.root.after(100, self.run_ai)  
 
+    def simulate_action(self, action):
+        # simulate the action and return the new grid
+        grid_copy = self.grid.clone_grid()  # clone the curr grid
+        if action == 'up':
+            self.up(grid_copy)
+        elif action == 'down':
+            self.down(grid_copy)
+        elif action == 'left':
+            self.left(grid_copy)
+        elif action == 'right':
+            self.right(grid_copy)
+        return grid_copy  # return the simulated grid
+
+
     def you_win(self):
         if not self.won:
             self.won = True
@@ -263,37 +280,37 @@ class Game:
         messagebox.showinfo('2048', 'Oops!\n'
                                     'Game over!')
 
-    def up(self):
-        self.grid.transpose()
-        self.grid.left_compress()
-        self.grid.left_merge()
-        self.grid.moved = self.grid.compressed or self.grid.merged
-        self.grid.left_compress()
-        self.grid.transpose()
+    def up(self, grid):
+        grid.transpose()
+        grid.left_compress()
+        grid.left_merge()
+        grid.moved = grid.compressed or grid.merged
+        grid.left_compress()
+        grid.transpose()
 
-    def left(self):
-        self.grid.left_compress()
-        self.grid.left_merge()
-        self.grid.moved = self.grid.compressed or self.grid.merged
-        self.grid.left_compress()
+    def left(self, grid):
+        grid.left_compress()
+        grid.left_merge()
+        grid.moved = grid.compressed or grid.merged
+        grid.left_compress()
 
-    def down(self):
-        self.grid.transpose()
-        self.grid.reverse()
-        self.grid.left_compress()
-        self.grid.left_merge()
-        self.grid.moved = self.grid.compressed or self.grid.merged
-        self.grid.left_compress()
-        self.grid.reverse()
-        self.grid.transpose()
+    def down(self, grid):
+        grid.transpose()
+        grid.reverse()
+        grid.left_compress()
+        grid.left_merge()
+        grid.moved = grid.compressed or grid.merged
+        grid.left_compress()
+        grid.reverse()
+        grid.transpose()
 
-    def right(self):
-        self.grid.reverse()
-        self.grid.left_compress()
-        self.grid.left_merge()
-        self.grid.moved = self.grid.compressed or self.grid.merged
-        self.grid.left_compress()
-        self.grid.reverse()
+    def right(self, grid):
+        grid.reverse()
+        grid.left_compress()
+        grid.left_merge()
+        grid.moved = grid.compressed or grid.merged
+        grid.left_compress()
+        grid.reverse()
 
 
 if __name__ == '__main__':
