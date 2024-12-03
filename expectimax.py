@@ -1,4 +1,3 @@
-actions = ['up', 'down', 'left', 'right']
 
 class ExpectimaxAI:
 
@@ -21,8 +20,8 @@ class ExpectimaxAI:
             # if the agent is max
             if agentIndex == 0:  
                 maxVal = float('-inf')
-                for action in actions:
-                    grid_copy = self.game.simulate_action(action)  # use simulate_action
+                for action in game.get_legal_actions():
+                    grid_copy = self.game.simulate_action(action)[0] # use simulate_action
                     if grid_copy.moved:  # consider valid moves only
                         maxVal = max(maxVal, expectimax(grid_copy, depth - 1, 1))
                 return maxVal
@@ -42,8 +41,8 @@ class ExpectimaxAI:
 
         bestAction = None
         bestScore = float('-inf')
-        for action in actions:
-            grid_copy = self.game.simulate_action(action)  
+        for action in game.get_legal_actions():
+            grid_copy = self.game.simulate_action(action)[0]  
             if grid_copy.moved:  # consider valid moves only
                 score = expectimax(grid_copy, self.depth, 1)
                 if score > bestScore:

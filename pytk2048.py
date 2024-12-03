@@ -4,8 +4,8 @@ import tkinter as tk
 import tkinter.messagebox as messagebox
 import sys
 import random
-import time
 from expectimax import ExpectimaxAI
+from montecarlo import MonteCarloAI, e_greedy_policy
 
 class Grid:
     '''The data structure representation of the 2048 game.'''
@@ -17,6 +17,9 @@ class Grid:
         self.moved = False
         self.current_score = 0
 
+    def get_state(self):
+        return [row.copy() for row in self.cells]
+    
     def random_cell(self):
         cell = random.choice(self.retrieve_empty_cells())
         i = cell[0]
@@ -169,6 +172,7 @@ class GamePanel:
             self.cell_labels.append(row_labels)
         self.background.pack(side=tk.TOP)
 
+
     def paint(self):
         for i in range(self.grid.size):
             for j in range(self.grid.size):
@@ -197,10 +201,14 @@ class Game:
         self.over = False
         self.won = False
         self.keep_playing = False
-        self.ai = ExpectimaxAI(self) 
+        self.ai = ExpectimaxAI(self)
+        # self.ai = MonteCarloAI(self, lambda g: e_greedy_policy(g, 0.1), 0.9, 100) 
 
     def is_game_terminated(self):
         return self.over or (self.won and (not self.keep_playing))
+    
+    def get_legal_actions(self):
+        return ['up', 'down', 'left', 'right']
 
     def start(self):
         self.add_start_cells()
@@ -257,6 +265,7 @@ class Game:
     def simulate_action(self, action):
         # simulate the action and return the new grid
         grid_copy = self.grid.clone_grid()  # clone the curr grid
+        initial_score = grid_copy.current_score
         if action == 'up':
             self.up(grid_copy)
         elif action == 'down':
@@ -265,8 +274,9 @@ class Game:
             self.left(grid_copy)
         elif action == 'right':
             self.right(grid_copy)
-            
-        return grid_copy  # return the simulated grid
+        
+        reward = grid_copy.current_score - initial_score
+        return (grid_copy, reward)  # return the simulated grid
 
 
     def you_win(self):
