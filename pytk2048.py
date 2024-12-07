@@ -1,11 +1,13 @@
 from __future__ import print_function
 
 import tkinter as tk 
+import time
 import tkinter.messagebox as messagebox
 import sys
 import random
 from expectimax import ExpectimaxAI
-from montecarlo import MonteCarloAI, e_greedy_policy
+from montecarlo import MonteCarloAI
+
 
 class Grid:
     '''The data structure representation of the 2048 game.'''
@@ -17,9 +19,24 @@ class Grid:
         self.moved = False
         self.current_score = 0
 
+    def generate_empty_grid(self):
+        return [[0] * self.size for _ in range(self.size)]
+
+    def clone_grid(self):
+        new_grid = Grid(self.size)
+        new_grid.set_cells([row[:] for row in self.cells])
+        new_grid.current_score = self.current_score
+        new_grid.compressed = self.compressed
+        new_grid.merged = self.merged
+        new_grid.moved = self.moved
+        return new_grid
+
+    def set_cells(self, cells):
+        self.cells = cells
+
     def get_state(self):
         return [row.copy() for row in self.cells]
-    
+
     def random_cell(self):
         cell = random.choice(self.retrieve_empty_cells())
         i = cell[0]
@@ -27,94 +44,173 @@ class Grid:
         self.cells[i][j] = 2 if random.random() < 0.9 else 4
 
     def retrieve_empty_cells(self):
-        empty_cells = []
+        return [(i, j) for i in range(self.size) for j in range(self.size) if self.cells[i][j] == 0]
+
+    def getScore(self):
+        return self.current_score
+    
+    def left_compress(self):
+        for i in range(self.size):
+            self.cells[i] = [num for num in self.cells[i] if num != 0]
+            self.cells[i] += [0] * (self.size - len(self.cells[i]))
+    
+    def left_merge(self):
+        for i in range(self.size):
+            for j in range(self.size - 1):
+                if self.cells[i][j] == self.cells[i][j + 1]:
+                    self.cells[i][j] *= 2
+                    self.cells[i][j + 1] = 0
+                    self.current_score += self.cells[i][j]
+    
+
+    def has_empty_cells(self):
+        return any(cell == 0 for row in self.cells for cell in row)
+
+    def can_merge(self):
         for i in range(self.size):
             for j in range(self.size):
                 if self.cells[i][j] == 0:
-                    empty_cells.append((i, j))
+                    continue
+                if i < self.size - 1 and self.cells[i][j] == self.cells[i + 1][j]:
+                    return True
+                if j < self.size - 1 and self.cells[i][j] == self.cells[i][j + 1]:
+                    return True
+        return False
 
-        return empty_cells
-
-    def generate_empty_grid(self):
-        return [[0] * self.size for i in range(self.size)]
-
-    def transpose(self):
-        self.cells = [list(t) for t in zip(*self.cells)]
-
-    def reverse(self):
-        for i in range(self.size):
-            start = 0
-            end = self.size - 1
-            while start < end:
-                self.cells[i][start], self.cells[i][end] = \
-                    self.cells[i][end], self.cells[i][start]
-                start += 1
-                end -= 1
+    def found_2048(self):
+        return any(cell == 2048 for row in self.cells for cell in row)
 
     def clear_flags(self):
         self.compressed = False
         self.merged = False
         self.moved = False
 
-    def left_compress(self):
-        self.compressed = False
-        new_grid = self.generate_empty_grid()
+    def move(self, direction):
+        initial_empty_cells = len(self.retrieve_empty_cells())
+        initial_state = self.get_state()
+
+        if direction == 'up':
+            reward = self.move_up()
+        elif direction == 'down':
+            reward = self.move_down()
+        elif direction == 'left':
+            reward = self.move_left()
+        elif direction == 'right':
+            reward = self.move_right()
+
+        final_empty_cells = len(self.retrieve_empty_cells())
+        final_state = self.get_state()
+
+        # Calculate reward based on the change in the number of empty cells and the grid state
+        reward += (final_empty_cells - initial_empty_cells) * 10  # Example heuristic
+        reward += self.calculate_state_difference(initial_state, final_state)
+
+        print('Reward: {}'.format(reward))
+        return reward
+
+    def move_up(self):
+        self.transpose()
+        reward = self.move_left()
+        self.transpose()
+        print('Reward (up): {}'.format(reward))
+        return reward
+
+    def move_down(self):
+        self.transpose()
+        reward = self.move_right()
+        self.transpose()
+        print('Reward (down): {}'.format(reward))
+        return reward
+
+    def move_left(self):
+        reward = 0
+        for row in self.cells:
+            reward += self.compress(row)
+            reward += self.merge(row)
+            reward += self.compress(row)
+        print('Reward (left): {}'.format(reward))
+        return reward
+
+    def move_right(self):
+        reward = 0
+        for row in self.cells:
+            row.reverse()
+            reward += self.compress(row)
+            reward += self.merge(row)
+            reward += self.compress(row)
+            row.reverse()
+        print('Reward (right): {}'.format(reward))
+        return reward
+
+    def compress(self, row):
+        new_row = [num for num in row if num != 0]
+        new_row += [0] * (self.size - len(new_row))
+        reward = 0
+        if new_row != row:
+            self.moved = True
+            reward = sum(new_row) - sum(row)
+        row[:] = new_row
+        return reward
+
+    def merge(self, row):
+        print("Merging row: ", row)
+        reward = 0
+        for i in range(self.size - 1):
+            if row[i] != 0 and row[i] == row[i + 1]:
+                row[i] *= 2
+                reward += row[i]
+                row[i + 1] = 0
+                self.merged = True
+                self.moved = True
+        print("moved", self.moved)
+        return reward
+
+    def calculate_state_difference(self, initial_state, final_state):
+        """
+        Calculate the difference between the initial and final grid states.
+        This can be used as part of the reward calculation.
+        """
+        difference = 0
         for i in range(self.size):
-            count = 0
             for j in range(self.size):
-                if self.cells[i][j] != 0:
-                    new_grid[i][count] = self.cells[i][j]
-                    if count != j:
-                        self.compressed = True
-                    count += 1
-        self.cells = new_grid
+                difference += abs(final_state[i][j] - initial_state[i][j])
+        return difference
 
-    def left_merge(self):
-        self.merged = False
-        for i in range(self.size):
-            for j in range(self.size - 1):
-                if self.cells[i][j] == self.cells[i][j + 1] and \
-                   self.cells[i][j] != 0:
-                    self.cells[i][j] *= 2
-                    self.cells[i][j + 1] = 0
-                    self.current_score += self.cells[i][j]
-                    self.merged = True
+    def transpose(self):
+        self.cells = [list(row) for row in zip(*self.cells)]
 
-    def found_2048(self):
-        for i in range(self.size):
-            for j in range(self.size):
-                if self.cells[i][j] >= 2048:
-                    return True
-        return False
+    def reverse(self):
+        self.cells = [row[::-1] for row in self.cells]
 
-    def has_empty_cells(self):
-        for i in range(self.size):
-            for j in range(self.size):
-                if self.cells[i][j] == 0:
-                    return True
-        return False
-
-    def can_merge(self):
-        for i in range(self.size):
-            for j in range(self.size - 1):
-                if self.cells[i][j] == self.cells[i][j + 1]:
-                    return True
+    def can_move_up(self):
         for j in range(self.size):
-            for i in range(self.size - 1):
-                if self.cells[i][j] == self.cells[i + 1][j]:
+            for i in range(1, self.size):
+                if self.cells[i][j] != 0 and (self.cells[i - 1][j] == 0 or self.cells[i - 1][j] == self.cells[i][j]):
                     return True
         return False
 
-    def set_cells(self, cells):
-        self.cells = cells
+    def can_move_down(self):
+        for j in range(self.size):
+            for i in range(self.size - 2, -1, -1):
+                if self.cells[i][j] != 0 and (self.cells[i + 1][j] == 0 or self.cells[i + 1][j] == self.cells[i][j]):
+                    return True
+        return False
 
- 
+    def can_move_left(self):
+        for i in range(self.size):
+            for j in range(1, self.size):
+                if self.cells[i][j] != 0 and (self.cells[i][j - 1] == 0 or self.cells[i][j - 1] == self.cells[i][j]):
+                    return True
+        return False
 
-    def clone_grid(self):
-        new_grid = Grid(grid.size)
-        new_grid.set_cells([row[:] for row in grid.cells])
-        return new_grid
-
+    def can_move_right(self):
+        for i in range(self.size):
+            for j in range(self.size - 2, -1, -1):
+                if self.cells[i][j] != 0 and (self.cells[i][j + 1] == 0 or self.cells[i][j + 1] == self.cells[i][j]):
+                    return True
+        return False
+    
+    
 
 class GamePanel:
     '''The GUI view class of the 2048 game showing via tkinter.'''
@@ -201,29 +297,69 @@ class Game:
         self.over = False
         self.won = False
         self.keep_playing = False
-        self.ai = ExpectimaxAI(self)
-        # self.ai = MonteCarloAI(self, lambda g: e_greedy_policy(g, 0.1), 0.9, 100) 
+        self.ai = MonteCarloAI(self, gamma=0.9, simulations=100)
+
+    def clone_game(self):
+        """
+        Creates a deep copy of the game, including its grid and state.
+        """
+        grid_copy = self.grid.clone_grid()
+        game_copy = Game(grid_copy, self.panel)
+        game_copy.over = self.over
+        game_copy.won = self.won
+        game_copy.keep_playing = self.keep_playing
+        return game_copy
+
+    def get_state(self):
+        return self.grid.get_state()
+
+    def simulate_action(self, action):
+        game_copy = self.clone_game()
+        initial_score = game_copy.grid.current_score
+        reward = game_copy.grid.move(action)  # Use the move method to update the grid state and get the reward
+        return (game_copy, reward)  # return the simulated grid and reward
 
     def is_game_terminated(self):
-        return self.over or (self.won and (not self.keep_playing))
-    
+        return self.over or (self.won and not self.keep_playing)
+
     def get_legal_actions(self):
-        return ['up', 'down', 'left', 'right']
+        actions = []
+        if self.can_move_up():
+            actions.append('up')
+        if self.can_move_down():
+            actions.append('down')
+        if self.can_move_left():
+            actions.append('left')
+        if self.can_move_right():
+            actions.append('right')
+        return actions
+
+    def can_move_up(self):
+        return self.grid.can_move_up()
+
+    def can_move_down(self):
+        return self.grid.can_move_down()
+
+    def can_move_left(self):
+        return self.grid.can_move_left()
+
+    def can_move_right(self):
+        return self.grid.can_move_right()
 
     def start(self):
         self.add_start_cells()
         self.panel.paint()
-        self.run_ai()  
+        self.run_ai()
 
     def add_start_cells(self):
-        for i in range(self.start_cells_num):
+        for _ in range(self.start_cells_num):
             self.grid.random_cell()
 
     def can_move(self):
         return self.grid.has_empty_cells() or self.grid.can_merge()
-    
+
     def apply_action(self, action):
-        # apply the action to the grid
+        # Apply the action to the grid
         if action == 'up':
             self.up(self.grid)
         elif action == 'down':
@@ -232,65 +368,57 @@ class Game:
             self.left(self.grid)
         elif action == 'right':
             self.right(self.grid)
+        
+        self.grid.moved = True
 
     def run_ai(self):
         if self.is_game_terminated():
+            print("Game terminated")
             return
 
         self.grid.clear_flags()
-        move = self.ai.getAction(self) 
+        move = self.ai.getAction(self)
+        print("MOVED HERE", self.grid.moved)
+        print(f"AI selected move: {move}")
         if move:
             self.apply_action(move)
 
+        print("MOVED HERE", self.grid.moved)
         self.panel.paint()
-        self.panel.root.update() 
+        self.panel.root.update()
 
         print('Score: {}'.format(self.grid.current_score))
         if self.grid.found_2048():
             self.you_win()
             if not self.keep_playing:
                 return
-
+            
+        print("about to generate")
+        print("MOVEDDDD", self.grid.moved)
         if self.grid.moved:
-            self.grid.random_cell()
+            self.grid.random_cell()  # Add a new tile if the grid has moved
 
+        print("about to paint")
         self.panel.paint()
         if not self.can_move():
             self.over = True
             self.game_over()
             return
-
-        self.panel.root.after(100, self.run_ai)  
-
-    def simulate_action(self, action):
-        # simulate the action and return the new grid
-        grid_copy = self.grid.clone_grid()  # clone the curr grid
-        initial_score = grid_copy.current_score
-        if action == 'up':
-            self.up(grid_copy)
-        elif action == 'down':
-            self.down(grid_copy)
-        elif action == 'left':
-            self.left(grid_copy)
-        elif action == 'right':
-            self.right(grid_copy)
         
-        reward = grid_copy.current_score - initial_score
-        return (grid_copy, reward)  # return the simulated grid
+        time.sleep(0.01)
 
+        self.panel.root.after(100, self.run_ai)
 
     def you_win(self):
         if not self.won:
             self.won = True
             print('You Win!')
-            if messagebox.askyesno('2048', 'You Win!\n'
-                                       'Are you going to continue the 2048 game?'):
+            if messagebox.askyesno('2048', 'You Win!\nAre you going to continue the 2048 game?'):
                 self.keep_playing = True
 
     def game_over(self):
         print('Game over!')
-        messagebox.showinfo('2048', 'Oops!\n'
-                                    'Game over!')
+        messagebox.showinfo('2048', 'Oops!\nGame over!')
 
     def up(self, grid):
         grid.transpose()
@@ -299,12 +427,6 @@ class Game:
         grid.moved = grid.compressed or grid.merged
         grid.left_compress()
         grid.transpose()
-
-    def left(self, grid):
-        grid.left_compress()
-        grid.left_merge()
-        grid.moved = grid.compressed or grid.merged
-        grid.left_compress()
 
     def down(self, grid):
         grid.transpose()
@@ -316,6 +438,12 @@ class Game:
         grid.reverse()
         grid.transpose()
 
+    def left(self, grid):
+        grid.left_compress()
+        grid.left_merge()
+        grid.moved = grid.compressed or grid.merged
+        grid.left_compress()
+
     def right(self, grid):
         grid.reverse()
         grid.left_compress()
@@ -323,7 +451,6 @@ class Game:
         grid.moved = grid.compressed or grid.merged
         grid.left_compress()
         grid.reverse()
-
 
 if __name__ == '__main__':
     size = 4

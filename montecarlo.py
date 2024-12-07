@@ -1,36 +1,23 @@
 import random
 
-def e_greedy_policy(self, game, epsilon=0.1):
-    # choose a random action with probability epsilon
-    if random.random() < epsilon:
-        return random.choice(game.get_legal_actions())
-    # choose the best action with probability 1 - epsilon
-    else:
-        best_action = None
-        best_score = float('-inf')
-        for action in game.get_legal_actions():
-            game_copy = game.clone_grid()
-            score = game_copy.simulate_action(action)[1]
-            if score > best_score:
-                best_score = score
-                best_action = action
-        return best_action
-
 class MonteCarloAI:
-    def __init__(self, game, policy, gamma, simulations=100):
+    def __init__(self, game, gamma=0.9, simulations=2, max_depth=3):
         self.game = game
-        self.simulations = simulations
-        self.num_visits = {}
-        self.utilities = {}
         self.gamma = gamma
-        self.policy = policy
+        self.simulations = simulations
+        self.max_depth = max_depth  # Maximum depth limit for the simulation
+        self.N = {}  # Counter for state visits
+        self.U = {}  # Utility estimates
 
     def getAction(self, game):
-        actions = ['up', 'down', 'left', 'right']
+        """
+        Returns the best action based on Monte Carlo simulations.
+        """
+        
         best_action = None
-        best_score = float('-inf')
+        best_score = -float('inf')
 
-        for action in actions:
+        for action in game.get_legal_actions():
             total_score = 0
             for _ in range(self.simulations):
                 total_score += self.simulate(game, action)
@@ -40,43 +27,54 @@ class MonteCarloAI:
                 best_score = average_score
                 best_action = action
 
+        print(f"Best move: {best_action}, Best score: {best_score}")
         return best_action
-        
+    
     def simulate(self, game, action):
-        game_copy = game.clone_grid()
-        game_copy.simulate_action(action)[1]
+        """
+        Simulates the game after taking the given action and updates utility estimates.
+        """
+        # Clone the game to avoid modifying the original game state
+        game_clone = game.clone_game()
+        reward = game_clone.simulate_action(action)[1]
 
         trajectory = []
-        while not game_copy.is_game_terminated():
-            state = game_copy.get_state()
-            policy_action = self.policy(game_copy)
-            score = game_copy.simulate_action(action)[1]
-            trajectory.append((state, policy_action, score))
+        depth = 0  # Initialize depth counter
+        while not game_clone.is_game_terminated() and depth < self.max_depth:
+            state = tuple(map(tuple, game_clone.get_state()))  # Convert state to tuple
+            legal_actions = game_clone.get_legal_actions()
+            policy_action = random.choice(legal_actions)  # Use random actions during the simulation
+            reward += game_clone.simulate_action(policy_action)[1]
+            trajectory.append((state, policy_action, reward))
+            depth += 1  # Increment depth counter
 
-        # update the utilities
-        self.update_utilities(trajectory)
+        # Update utility estimates based on the trajectory
+        self.updateUtilities(trajectory)
 
-        # return utility of the initial state
-        initial_state = game.get_state()
-        return self.utilities.get(initial_state, 0)
+        # Return the utility of the initial state
+        initial_state = tuple(map(tuple, game.get_state()))  # Convert state to tuple
+        print("end of simulation")
+        return self.U.get(initial_state, 0)
+    
 
-    def update_utilities(self, trajectory):
+    def updateUtilities(self, trajectory):
+        """
+        Updates the utility estimates based on the given trajectory.
+        """
+        print("updating utilities")
         T = len(trajectory)
         for t in range(T):
             state, _, reward = trajectory[t]
-            if state not in self.num_visits:
-                self.num_visits[state] = 0
-                self.utilities[state] = 0
+            if state not in self.N:
+                self.N[state] = 0
+                self.U[state] = 0
 
-            self.num_visits[state] += 1
+            self.N[state] += 1
 
-            # calc utility at time t
-            u_t = sum(self.gamma ** (k-t) * reward for k in range(t, T))
+            # Calculate the utility ut
+            ut = sum(self.gamma ** (k - t) * trajectory[k][2] for k in range(t, T))
 
-            # update the utility
-            self.utilities[state] = ((self.num_visits[state] - 1) 
-                                     * self.utilities[state] + u_t) / self.num_visits[state]
-
-  
-
-
+            # Update the utility estimate
+            self.U[state] = ((self.N[state] - 1) * self.U[state] + ut) / self.N[state]  
+    
+    
