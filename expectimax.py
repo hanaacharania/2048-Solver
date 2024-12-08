@@ -24,16 +24,17 @@ class ExpectimaxAI:
                 for action in game.get_legal_actions():
                     grid_copy = self.game.simulate_action(action)[0] # use simulate_action
                     if grid_copy.grid.moved:  # consider valid moves only
-                        maxVal = max(maxVal, expectimax(grid_copy, depth - 1, 1))
+                        maxVal = max(maxVal, expectimax(grid_copy.grid, depth - 1, 1))
                 return maxVal
 
             # if the agent is min/random
             else:
                 expectedVal = 0
-                empty_cells = self.game.grid.retrieve_empty_cells() 
+                empty_cells = state.retrieve_empty_cells() 
                 probability = 1 / len(empty_cells) # tile spawns randomly in an empty cell
                 for cell in empty_cells: # ensures all possible tile spawns (i.e. 2,4) are considered
-                    grid_copy = self.game.grid.clone_grid()
+                    grid_copy = state.clone_grid()
+                    print(grid_copy.cells)
                     grid_copy.cells[cell[0]][cell[1]] = 2 # spawn a 2 tile
                     expectedVal += 0.9 * probability * expectimax(grid_copy, depth - 1, 0) # 90% chance of spawning a 2 tile (known)
                     grid_copy.cells[cell[0]][cell[1]] = 4 # spawn a 4 tile
@@ -45,7 +46,7 @@ class ExpectimaxAI:
         for action in game.get_legal_actions():
             grid_copy = self.game.simulate_action(action)[0]  
             if grid_copy.grid.moved:  # consider valid moves only
-                score = expectimax(grid_copy, self.depth, 1)
+                score = expectimax(grid_copy.grid, self.depth, 1)
                 if score > bestScore:
                     bestScore = score
                     bestAction = action
@@ -129,4 +130,4 @@ class ExpectimaxAI:
         return score 
 
     def is_terminal(self, state):
-        return self.game.grid.found_2048() or (not self.game.grid.has_empty_cells() and not self.game.grid.grid.can_merge()) # terminal state if 2048 tile is found or no empty cells and no possible merges
+        return state.found_2048() or (not state.has_empty_cells() and not state.can_merge()) # terminal state if 2048 tile is found or no empty cells and no possible merges
