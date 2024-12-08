@@ -6,6 +6,7 @@ class ExpectimaxAI:
         self.depth = depth
 
     def getAction(self, game):
+
         """
         Returns the expectimax action using self.depth and self.evaluationFunction
 
@@ -34,7 +35,7 @@ class ExpectimaxAI:
                 probability = 1 / len(empty_cells) # tile spawns randomly in an empty cell
                 for cell in empty_cells: # ensures all possible tile spawns (i.e. 2,4) are considered
                     grid_copy = state.clone_grid()
-                    print(grid_copy.cells)
+                    # print(grid_copy.cells)
                     grid_copy.cells[cell[0]][cell[1]] = 2 # spawn a 2 tile
                     expectedVal += 0.9 * probability * expectimax(grid_copy, depth - 1, 0) # 90% chance of spawning a 2 tile (known)
                     grid_copy.cells[cell[0]][cell[1]] = 4 # spawn a 4 tile
@@ -50,7 +51,8 @@ class ExpectimaxAI:
                 if score > bestScore:
                     bestScore = score
                     bestAction = action
-        print(f"Best move: {bestAction}, Best score: {bestScore}")
+                print(f'score: {score}')
+        print(f"Best score: {bestScore}")
         return bestAction
     
     def calculate_smoothness(self, grid): # smoothness heuristic = tries to minimize the difference between adjacent tiles
@@ -112,7 +114,8 @@ class ExpectimaxAI:
         return 1 if max_tile in corners else 0
     
     def evaluationFunction(self, grid): 
-        return self.calculate_score(grid)
+        score = self.calculate_score(grid)
+        return score
     
     def calculate_score(self, grid):
         empty_cells = len(grid.retrieve_empty_cells()) # number of empty cells

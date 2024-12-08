@@ -105,21 +105,18 @@ class Grid:
         reward += (final_empty_cells - initial_empty_cells) * 10  # Example heuristic
         reward += self.calculate_state_difference(initial_state, final_state)
 
-        print('Reward: {}'.format(reward))
         return reward
 
     def move_up(self):
         self.transpose()
         reward = self.move_left()
         self.transpose()
-        print('Reward (up): {}'.format(reward))
         return reward
 
     def move_down(self):
         self.transpose()
         reward = self.move_right()
         self.transpose()
-        print('Reward (down): {}'.format(reward))
         return reward
 
     def move_left(self):
@@ -128,7 +125,6 @@ class Grid:
             reward += self.compress(row)
             reward += self.merge(row)
             reward += self.compress(row)
-        print('Reward (left): {}'.format(reward))
         return reward
 
     def move_right(self):
@@ -139,7 +135,6 @@ class Grid:
             reward += self.merge(row)
             reward += self.compress(row)
             row.reverse()
-        print('Reward (right): {}'.format(reward))
         return reward
 
     def compress(self, row):
@@ -153,7 +148,7 @@ class Grid:
         return reward
 
     def merge(self, row):
-        print("Merging row: ", row)
+        # merge tiles with the same value
         reward = 0
         for i in range(self.size - 1):
             if row[i] != 0 and row[i] == row[i + 1]:
@@ -162,7 +157,6 @@ class Grid:
                 row[i + 1] = 0
                 self.merged = True
                 self.moved = True
-        print("moved", self.moved)
         return reward
 
     def calculate_state_difference(self, initial_state, final_state):
@@ -290,14 +284,17 @@ class GamePanel:
 
 class Game:
     '''The main game class which is the controller of the whole game.'''
-    def __init__(self, grid, panel):
+    def __init__(self, grid, panel, user_choice='E'):
         self.grid = grid
         self.panel = panel
         self.start_cells_num = 2
         self.over = False
         self.won = False
         self.keep_playing = False
-        self.ai = MonteCarloAI(self, gamma=0.9, simulations=100)
+        if user_choice == 'MC':
+            self.ai = MonteCarloAI(self, 0.9, 100, 50)
+        elif user_choice == 'E':
+            self.ai = ExpectimaxAI(self)
 
     def clone_game(self):
         """
@@ -315,8 +312,7 @@ class Game:
 
     def simulate_action(self, action):
         game_copy = self.clone_game()
-        initial_score = game_copy.grid.current_score
-        reward = game_copy.grid.move(action)  # Use the move method to update the grid state and get the reward
+        reward = game_copy.grid.move(action)  
         return (game_copy, reward)  # return the simulated grid and reward
 
     def is_game_terminated(self):
@@ -359,7 +355,6 @@ class Game:
         return self.grid.has_empty_cells() or self.grid.can_merge()
 
     def apply_action(self, action):
-        # Apply the action to the grid
         if action == 'up':
             self.up(self.grid)
         elif action == 'down':
@@ -373,32 +368,26 @@ class Game:
 
     def run_ai(self):
         if self.is_game_terminated():
-            print("Game terminated")
             return
 
         self.grid.clear_flags()
         move = self.ai.getAction(self)
-        print("MOVED HERE", self.grid.moved)
-        print(f"AI selected move: {move}")
+
         if move:
             self.apply_action(move)
 
-        print("MOVED HERE", self.grid.moved)
         self.panel.paint()
         self.panel.root.update()
 
-        print('Score: {}'.format(self.grid.current_score))
         if self.grid.found_2048():
             self.you_win()
             if not self.keep_playing:
                 return
             
-        print("about to generate")
-        print("MOVEDDDD", self.grid.moved)
+
         if self.grid.moved:
             self.grid.random_cell()  # Add a new tile if the grid has moved
 
-        print("about to paint")
         self.panel.paint()
         if not self.can_move():
             self.over = True
@@ -453,7 +442,8 @@ class Game:
 if __name__ == '__main__':
     size = 4
     grid = Grid(size)
+    choice = input("Choose AI: 1. Monte Carlo ('MC') 2. Expectimax ('E')\n")
     panel = GamePanel(grid)
-    game2048 = Game(grid, panel)
+    game2048 = Game(grid, panel, choice)
     game2048.start()
     panel.root.mainloop() 

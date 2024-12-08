@@ -24,7 +24,7 @@ class MonteCarloAI:
                 best_score = average_score
                 best_action = action
 
-        print(f"Best move: {best_action}, Best score: {best_score}")
+        # print(f"Best move: {best_action}, best score: {best_score}")
         return best_action
     
     def simulate(self, game, action):
@@ -48,13 +48,13 @@ class MonteCarloAI:
 
         # Return the utility of the initial state
         initial_state = tuple(map(tuple, game.get_state()))  # Convert state to tuple
-        print("end of simulation")
+        # print("end of simulation")
         return self.U.get(initial_state, 0)
     
 
     def updateUtilities(self, trajectory):
 
-        print("updating utilities")
+        # print("updating utilities")
         T = len(trajectory)
         for t in range(T):
             state, _, reward = trajectory[t]
