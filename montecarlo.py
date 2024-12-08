@@ -1,7 +1,7 @@
 import random
 
 class MonteCarloAI:
-    def __init__(self, game, gamma=0.9, simulations=2, max_depth=3):
+    def __init__(self, game, gamma=0.9, simulations=100, max_depth=50):
         self.game = game
         self.gamma = gamma
         self.simulations = simulations
@@ -10,9 +10,6 @@ class MonteCarloAI:
         self.U = {}  # Utility estimates
 
     def getAction(self, game):
-        """
-        Returns the best action based on Monte Carlo simulations.
-        """
         
         best_action = None
         best_score = -float('inf')
@@ -31,9 +28,7 @@ class MonteCarloAI:
         return best_action
     
     def simulate(self, game, action):
-        """
-        Simulates the game after taking the given action and updates utility estimates.
-        """
+
         # Clone the game to avoid modifying the original game state
         game_clone = game.clone_game()
         reward = game_clone.simulate_action(action)[1]
@@ -58,9 +53,7 @@ class MonteCarloAI:
     
 
     def updateUtilities(self, trajectory):
-        """
-        Updates the utility estimates based on the given trajectory.
-        """
+
         print("updating utilities")
         T = len(trajectory)
         for t in range(T):

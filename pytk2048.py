@@ -297,7 +297,7 @@ class Game:
         self.over = False
         self.won = False
         self.keep_playing = False
-        self.ai = MonteCarloAI(self, gamma=0.9, simulations=100)
+        self.ai = ExpectimaxAI(self)
 
     def clone_game(self):
         """
@@ -405,8 +405,6 @@ class Game:
             self.game_over()
             return
         
-        time.sleep(0.01)
-
         self.panel.root.after(100, self.run_ai)
 
     def you_win(self):

@@ -14,6 +14,7 @@ class ExpectimaxAI:
         """
         def expectimax(state, depth, agentIndex):
             # base case: if the state is terminal or depth is 0, return the score
+        
             if depth == 0 or self.is_terminal(state):
                 return self.evaluationFunction(state)
 
@@ -22,17 +23,17 @@ class ExpectimaxAI:
                 maxVal = float('-inf')
                 for action in game.get_legal_actions():
                     grid_copy = self.game.simulate_action(action)[0] # use simulate_action
-                    if grid_copy.moved:  # consider valid moves only
+                    if grid_copy.grid.moved:  # consider valid moves only
                         maxVal = max(maxVal, expectimax(grid_copy, depth - 1, 1))
                 return maxVal
 
             # if the agent is min/random
             else:
                 expectedVal = 0
-                empty_cells = state.retrieve_empty_cells() 
+                empty_cells = self.game.grid.retrieve_empty_cells() 
                 probability = 1 / len(empty_cells) # tile spawns randomly in an empty cell
                 for cell in empty_cells: # ensures all possible tile spawns (i.e. 2,4) are considered
-                    grid_copy = state.clone_grid()
+                    grid_copy = self.game.grid.clone_grid()
                     grid_copy.cells[cell[0]][cell[1]] = 2 # spawn a 2 tile
                     expectedVal += 0.9 * probability * expectimax(grid_copy, depth - 1, 0) # 90% chance of spawning a 2 tile (known)
                     grid_copy.cells[cell[0]][cell[1]] = 4 # spawn a 4 tile
@@ -43,7 +44,7 @@ class ExpectimaxAI:
         bestScore = float('-inf')
         for action in game.get_legal_actions():
             grid_copy = self.game.simulate_action(action)[0]  
-            if grid_copy.moved:  # consider valid moves only
+            if grid_copy.grid.moved:  # consider valid moves only
                 score = expectimax(grid_copy, self.depth, 1)
                 if score > bestScore:
                     bestScore = score
@@ -127,5 +128,5 @@ class ExpectimaxAI:
 
         return score 
 
-    def is_terminal(self, grid):
-        return grid.found_2048() or (not grid.has_empty_cells() and not grid.can_merge()) # terminal state if 2048 tile is found or no empty cells and no possible merges
+    def is_terminal(self, state):
+        return self.game.grid.found_2048() or (not self.game.grid.has_empty_cells() and not self.game.grid.grid.can_merge()) # terminal state if 2048 tile is found or no empty cells and no possible merges
