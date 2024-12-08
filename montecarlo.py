@@ -1,73 +1,72 @@
 import random
 
 class MonteCarloAI:
-    def __init__(self, game, gamma=0.9, simulations=100, max_depth=50):
-        self.game = game
-        self.gamma = gamma
+    def __init__(self, game, gamma=0.9, simulations=100, max_depth=50): # Initialize game, discount factor, number of simulations, and maximum depth
+        self.game = game 
+        self.gamma = gamma # discount factor
         self.simulations = simulations
-        self.max_depth = max_depth  # Maximum depth limit for the simulation
-        self.N = {}  # Counter for state visits
-        self.U = {}  # Utility estimates
+        self.max_depth = max_depth  #
+        self.N = {}  # counter of total visits
+        self.U = {}  # utility estimates
 
-    def getAction(self, game):
+    def getAction(self, game): # returns the best action based on the Monte Carlo Tree Search algorithm
         
         best_action = None
         best_score = -float('inf')
 
-        for action in game.get_legal_actions():
+        for action in game.get_legal_actions(): # left, right, up, down
             total_score = 0
             for _ in range(self.simulations):
-                total_score += self.simulate(game, action)
-            average_score = total_score / self.simulations
+                total_score += self.simulate(game, action) # simulate the game and add to the total score
+            average_score = total_score / self.simulations # calculate the average score
 
-            if average_score > best_score:
+            if average_score > best_score: # update the best action and best score
                 best_score = average_score
                 best_action = action
 
-        print(f"Best move: {best_action}, Best score: {best_score}")
-        return best_action
+        return best_action # return the best action
     
-    def simulate(self, game, action):
+    def simulate(self, game, action): # simulate the game and return the utility of the initial state of the trajectory
 
-        # Clone the game to avoid modifying the original game state
+        # clone the game and simulate the action
         game_clone = game.clone_game()
-        reward = game_clone.simulate_action(action)[1]
+        reward = game_clone.simulate_action(action)[1] # get the reward
 
-        trajectory = []
-        depth = 0  # Initialize depth counter
-        while not game_clone.is_game_terminated() and depth < self.max_depth:
-            state = tuple(map(tuple, game_clone.get_state()))  # Convert state to tuple
-            legal_actions = game_clone.get_legal_actions()
-            policy_action = random.choice(legal_actions)  # Use random actions during the simulation
-            reward += game_clone.simulate_action(policy_action)[1]
-            trajectory.append((state, policy_action, reward))
-            depth += 1  # Increment depth counter
+        trajectory = [] 
+        depth = 0  # depth counter
+        while not game_clone.is_game_terminated() and depth < self.max_depth: 
+            for row in game_clone.get_state(): 
+                state = tuple(tuple(row)) # convert the state to a tuple to hold state, policy_action, and reward
+            legal_actions = game_clone.get_legal_actions() 
+            policy_action = random.choice(legal_actions)  # choose a random action from the legal actions
+            reward += game_clone.simulate_action(policy_action)[1] # get the reward
+            trajectory.append((state, policy_action, reward)) 
+            depth += 1  # increment the depth counter
 
-        # Update utility estimates based on the trajectory
+        # Update utilities estimates based on the trajectory
         self.updateUtilities(trajectory)
 
-        # Return the utility of the initial state
-        initial_state = tuple(map(tuple, game.get_state()))  # Convert state to tuple
-        print("end of simulation")
-        return self.U.get(initial_state, 0)
+        # return the utility of the initial state of the trajectory
+        for row in game.get_state():
+            initial_state = tuple(tuple(row))
+        return self.U.get(initial_state, 0) 
     
 
-    def updateUtilities(self, trajectory):
+    def updateUtilities(self, trajectory): # update the utilities based on the trajectory
 
-        print("updating utilities")
-        T = len(trajectory)
+        T = len(trajectory) # number of states in the trajectory
         for t in range(T):
-            state, _, reward = trajectory[t]
-            if state not in self.N:
-                self.N[state] = 0
-                self.U[state] = 0
+            state, _, reward = trajectory[t] # get the state, policy action, and reward
+            if state not in self.N: # if state was unvisited, initialize the counters
+                self.N[state] = 0 # counter of total visits
+                self.U[state] = 0 # utility estimates
 
-            self.N[state] += 1
+            self.N[state] += 1 # increment the counter of total visits
 
-            # Calculate the utility ut
+            # calculate utility u_t
             ut = sum(self.gamma ** (k - t) * trajectory[k][2] for k in range(t, T))
 
-            # Update the utility estimate
+            # Update utility estimate U^pi(s_t) based on utility u_t
             self.U[state] = ((self.N[state] - 1) * self.U[state] + ut) / self.N[state]  
     
     
