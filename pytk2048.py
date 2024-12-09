@@ -297,29 +297,6 @@ class Game:
         elif user_choice == 'E':
             self.ai = ExpectimaxAI(self)
 
-    def test_algorithm(self, num_tests=100):
-        if testing_mode:
-            print("Testing the algorithm...")
-            scores = []
-            for _ in range(num_tests):
-                self.grid = Grid(4)
-                self.start_cells_num = 2
-                self.over = False
-                self.won = False
-                self.keep_playing = False
-                self.add_start_cells()
-                while not self.is_game_terminated():
-                    self.grid.clear_flags()
-                    move = self.ai.getAction(self)
-                    if move:
-                        self.apply_action(move)
-                    if self.grid.moved:
-                        self.grid.random_cell()
-                scores.append(self.grid.getScore())
-            print(f"Average score: {sum(scores) / num_tests}")
-            print(f"Max score: {max(scores)}")
-            print(f"Min score: {min(scores)}")
-
     def clone_game(self):
         """
         Creates a deep copy of the game, including its grid and state.
@@ -372,6 +349,28 @@ class Game:
             self.panel.paint()
         self.run_ai()
 
+    def run_tests(self, num_tests=15):
+        scores = []
+        highest_tiles = []
+
+        for i in range(num_tests):
+            self.grid = Grid(4)
+            self.over = False
+            self.won = False
+            self.keep_playing = False
+            self.add_start_cells()
+            final_score, max_tile = self.run_ai()
+            scores.append(final_score)
+            highest_tiles.append(max_tile)
+            print(f"Test {i + 1}: Final score = {final_score}, Highest tile = {max_tile}")
+        
+        mean_score = sum(scores) / num_tests
+        highest_tile = max(highest_tiles)
+        print(f"Mean score: {mean_score}")
+        print(f"highest score: {max(scores)}")
+        print(f"Highest tile: {highest_tile}")
+                
+
     def add_start_cells(self):
         for _ in range(self.start_cells_num):
             self.grid.random_cell()
@@ -393,7 +392,9 @@ class Game:
 
     def run_ai(self):
         if self.is_game_terminated():
-            return
+            final_score = self.grid.getScore()
+            max_tile = max(max(row) for row in self.grid.cells)
+            return final_score, max_tile
 
         self.grid.clear_flags()
         move = self.ai.getAction(self)
@@ -408,7 +409,9 @@ class Game:
         if self.grid.found_2048():
             self.you_win()
             if not self.keep_playing:
-                return
+                final_score = self.grid.getScore()
+                max_tile = max(max(row) for row in self.grid.cells)
+                return final_score, max_tile
             
 
         if self.grid.moved:
@@ -419,15 +422,19 @@ class Game:
             if not self.can_move():
                 self.over = True
                 self.game_over()
-                return
-        
+                final_score = self.grid.getScore()
+                max_tile = max(max(row) for row in self.grid.cells)
+                return final_score, max_tile        
             self.panel.root.after(100, self.run_ai)
         else:
             if not self.can_move():
                 self.over = True
                 self.game_over()
-                return
-            self.run_ai()
+                final_score = self.grid.getScore()
+                max_tile = max(max(row) for row in self.grid.cells)
+                return final_score, max_tile
+            return self.run_ai()
+        
 
     def you_win(self):
         if not self.won:
@@ -473,7 +480,6 @@ class Game:
         grid.moved = grid.compressed or grid.merged
         grid.left_compress()
         grid.reverse()
-
 if __name__ == '__main__':
     size = 4
     grid = Grid(size)
@@ -482,7 +488,7 @@ if __name__ == '__main__':
     if testing_mode == 'y':
         panel = GamePanel(grid)
         game2048 = Game(grid, None, choice, testing_mode=True)
-        game2048.start()
+        game2048.run_tests()
 
     else:
         panel = GamePanel(grid)
