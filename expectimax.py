@@ -8,9 +8,9 @@ class ExpectimaxAI:
     def getAction(self, game):
 
         """
-        Returns the expectimax action using self.depth and self.evaluationFunction
+        returns the expectimax action using self.depth and self.evaluationFunction
 
-        All tiles are modeled as choosing uniformly at random from their
+        all tiles are modeled as choosing uniformly at random from their
         legal moves (i.e. 2, 4).
         """
         def expectimax(state, depth, agentIndex):

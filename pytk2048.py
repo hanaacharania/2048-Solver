@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import tkinter as tk 
-import time
 import tkinter.messagebox as messagebox
 import sys
 import numpy as np
@@ -450,7 +449,6 @@ class Game:
                     self.keep_playing = True
 
     def game_over(self):
-        print('Game over!')
         if not self.testing_mode:
             messagebox.showinfo('2048', 'Oops!\nGame over!')
 
@@ -493,17 +491,20 @@ if __name__ == '__main__':
     if testing_mode == 'y':
         panel = GamePanel(grid)
         game2048 = Game(grid, None, choice, testing_mode=True)
-        num_runs = 5
-        scores = game2048.run_tests()
+        choice_name = 'expectimax' if choice == 'E' else 'montecarlo'
+        num_runs = 100
+        scores = game2048.run_tests(num_runs)
 
         # Plot the scores over the runs
         plt.figure(figsize=(10, 5))
-        plt.plot(scores, label=f'{choice} AI')
+        plt.plot(scores, label=f'{choice_name} AI')
         plt.xlabel('Run')
         plt.ylabel('Score')
         plt.title(f'Scores over {num_runs} Runs')
         plt.legend()
         plt.show()
+
+        plt.savefig(f'{choice_name}_scores.png')
 
     else:
         panel = GamePanel(grid)
