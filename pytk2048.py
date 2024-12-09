@@ -284,9 +284,10 @@ class GamePanel:
 
 class Game:
     '''The main game class which is the controller of the whole game.'''
-    def __init__(self, grid, panel, user_choice='E'):
+    def __init__(self, grid, panel, user_choice='E', testing_mode=False):
         self.grid = grid
         self.panel = panel
+        self.testing_mode = testing_mode
         self.start_cells_num = 2
         self.over = False
         self.won = False
@@ -295,6 +296,29 @@ class Game:
             self.ai = MonteCarloAI(self, 0.9, 100, 50)
         elif user_choice == 'E':
             self.ai = ExpectimaxAI(self)
+
+    def test_algorithm(self, num_tests=100):
+        if testing_mode:
+            print("Testing the algorithm...")
+            scores = []
+            for _ in range(num_tests):
+                self.grid = Grid(4)
+                self.start_cells_num = 2
+                self.over = False
+                self.won = False
+                self.keep_playing = False
+                self.add_start_cells()
+                while not self.is_game_terminated():
+                    self.grid.clear_flags()
+                    move = self.ai.getAction(self)
+                    if move:
+                        self.apply_action(move)
+                    if self.grid.moved:
+                        self.grid.random_cell()
+                scores.append(self.grid.getScore())
+            print(f"Average score: {sum(scores) / num_tests}")
+            print(f"Max score: {max(scores)}")
+            print(f"Min score: {min(scores)}")
 
     def clone_game(self):
         """
@@ -344,7 +368,8 @@ class Game:
 
     def start(self):
         self.add_start_cells()
-        self.panel.paint()
+        if not self.testing_mode:
+            self.panel.paint()
         self.run_ai()
 
     def add_start_cells(self):
@@ -376,8 +401,9 @@ class Game:
         if move:
             self.apply_action(move)
 
-        self.panel.paint()
-        self.panel.root.update()
+        if not self.testing_mode:
+            self.panel.paint()
+            self.panel.root.update()
 
         if self.grid.found_2048():
             self.you_win()
@@ -388,24 +414,33 @@ class Game:
         if self.grid.moved:
             self.grid.random_cell()  # Add a new tile if the grid has moved
 
-        self.panel.paint()
-        if not self.can_move():
-            self.over = True
-            self.game_over()
-            return
+        if not self.testing_mode:
+            self.panel.paint()
+            if not self.can_move():
+                self.over = True
+                self.game_over()
+                return
         
-        self.panel.root.after(100, self.run_ai)
+            self.panel.root.after(100, self.run_ai)
+        else:
+            if not self.can_move():
+                self.over = True
+                self.game_over()
+                return
+            self.run_ai()
 
     def you_win(self):
         if not self.won:
             self.won = True
             print('You Win!')
-            if messagebox.askyesno('2048', 'You Win!\nAre you going to continue the 2048 game?'):
-                self.keep_playing = True
+            if not self.testing_mode:
+                if messagebox.askyesno('2048', 'You Win!\nAre you going to continue the 2048 game?'):
+                    self.keep_playing = True
 
     def game_over(self):
         print('Game over!')
-        messagebox.showinfo('2048', 'Oops!\nGame over!')
+        if not self.testing_mode:
+            messagebox.showinfo('2048', 'Oops!\nGame over!')
 
     def up(self, grid):
         grid.transpose()
@@ -443,7 +478,15 @@ if __name__ == '__main__':
     size = 4
     grid = Grid(size)
     choice = input("Choose AI: 1. Monte Carlo ('MC') 2. Expectimax ('E')\n")
-    panel = GamePanel(grid)
-    game2048 = Game(grid, panel, choice)
-    game2048.start()
-    panel.root.mainloop() 
+    testing_mode = input("Testing mode? (y/n)\n")
+    if testing_mode == 'y':
+        panel = GamePanel(grid)
+        game2048 = Game(grid, None, choice, testing_mode=True)
+        game2048.start()
+
+    else:
+        panel = GamePanel(grid)
+        game2048 = Game(grid, panel, choice, testing_mode=False)
+        game2048.start()
+
+        panel.root.mainloop() 
