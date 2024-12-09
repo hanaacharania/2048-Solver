@@ -4,6 +4,7 @@ import tkinter as tk
 import time
 import tkinter.messagebox as messagebox
 import sys
+import numpy as np
 import random
 from expectimax import ExpectimaxAI
 from montecarlo import MonteCarloAI
@@ -349,7 +350,7 @@ class Game:
             self.panel.paint()
         self.run_ai()
 
-    def run_tests(self, num_tests=15):
+    def run_tests(self, num_tests=5):
         scores = []
         highest_tiles = []
 
@@ -365,10 +366,12 @@ class Game:
             print(f"Test {i + 1}: Final score = {final_score}, Highest tile = {max_tile}")
         
         mean_score = sum(scores) / num_tests
+        std_dev = np.std(scores)
         highest_tile = max(highest_tiles)
         print(f"Mean score: {mean_score}")
         print(f"highest score: {max(scores)}")
         print(f"Highest tile: {highest_tile}")
+        print(f"Standard deviation: {std_dev}")
                 
 
     def add_start_cells(self):
