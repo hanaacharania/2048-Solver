@@ -6,6 +6,7 @@ import tkinter.messagebox as messagebox
 import sys
 import numpy as np
 import random
+import matplotlib.pyplot as plt
 from expectimax import ExpectimaxAI
 from montecarlo import MonteCarloAI
 
@@ -372,6 +373,7 @@ class Game:
         print(f"highest score: {max(scores)}")
         print(f"Highest tile: {highest_tile}")
         print(f"Standard deviation: {std_dev}")
+        return scores
                 
 
     def add_start_cells(self):
@@ -491,7 +493,17 @@ if __name__ == '__main__':
     if testing_mode == 'y':
         panel = GamePanel(grid)
         game2048 = Game(grid, None, choice, testing_mode=True)
-        game2048.run_tests()
+        num_runs = 5
+        scores = game2048.run_tests()
+
+        # Plot the scores over the runs
+        plt.figure(figsize=(10, 5))
+        plt.plot(scores, label=f'{choice} AI')
+        plt.xlabel('Run')
+        plt.ylabel('Score')
+        plt.title(f'Scores over {num_runs} Runs')
+        plt.legend()
+        plt.show()
 
     else:
         panel = GamePanel(grid)
