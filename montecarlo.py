@@ -45,7 +45,7 @@ class MonteCarloAI:
             # pick a policy action using epsilon-greedy strategy
             if random.random() < 0.1: 
                 policy_action = random.choice(legal_actions) # exploration
-            else: # max Q(s,a)
+            else: # take action w/ highest utility
                 bestAction = None
                 bestUtility = -float('inf')
                 for action in legal_actions:
