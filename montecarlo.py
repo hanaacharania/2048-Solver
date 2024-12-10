@@ -45,8 +45,18 @@ class MonteCarloAI:
             # pick a policy action using epsilon-greedy strategy
             if random.random() < 0.1: 
                 policy_action = random.choice(legal_actions) # exploration
-            else: 
-                policy_action = max(legal_actions, key=lambda a: self.U.get(tuple(tuple(row) for row in game_clone.simulate_action(a)[0].get_state()), 0))  # exploitation                
+            else: # max Q(s,a)
+                bestAction = None
+                bestUtility = -float('inf')
+                for action in legal_actions:
+                        nextState = game_clone.simulate_action(action)[0].get_state() 
+                        sTuple = tuple(tuple(row) for row in nextState) 
+                        utility = self.U.get(sTuple, 0) # get the utility of the next state
+
+                        if utility > bestUtility:
+                            bestUtility = utility
+                            bestAction = action
+                policy_action = bestAction # exploitation
             # policy_action = random.choice(legal_actions)  # use this for baseline testing
             
             reward += game_clone.simulate_action(policy_action)[1] # get the reward
