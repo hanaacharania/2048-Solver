@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import tkinter as tk 
-import time
 import tkinter.messagebox as messagebox
 import sys
 import numpy as np
@@ -493,7 +492,7 @@ if __name__ == '__main__':
     if testing_mode == 'y':
         panel = GamePanel(grid)
         game2048 = Game(grid, None, choice, testing_mode=True)
-        num_runs = 5
+        num_runs = 1
         scores = game2048.run_tests()
 
         # Plot the scores over the runs

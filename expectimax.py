@@ -51,6 +51,7 @@ class ExpectimaxAI:
                 if score > bestScore:
                     bestScore = score
                     bestAction = action
+        print(f"Best move: {bestAction})")
         return bestAction
     
     def calculate_smoothness(self, grid): # smoothness heuristic = tries to minimize the difference between adjacent tiles

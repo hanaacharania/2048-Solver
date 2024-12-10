@@ -1,13 +1,15 @@
 import random
+from expectimax import ExpectimaxAI
 
 class MonteCarloAI:
-    def __init__(self, game, gamma=0.9, simulations=100, max_depth=50): # Initialize game, discount factor, number of simulations, and maximum depth
+    def __init__(self, game, gamma=0.9, simulations=1, max_depth=2): # Initialize game, discount factor, number of simulations, and maximum depth
         self.game = game 
         self.gamma = gamma # discount factor
         self.simulations = simulations
         self.max_depth = max_depth  #
         self.N = {}  # counter of total visits
         self.U = {}  # utility estimates
+        self.expectimax = ExpectimaxAI(game) # initialize Expectimax AI
 
     def getAction(self, game): # returns the best action based on the Monte Carlo Tree Search algorithm
         
@@ -39,7 +41,14 @@ class MonteCarloAI:
             for row in game_clone.get_state(): 
                 state = tuple(tuple(row)) # convert the state to a tuple to hold state, policy_action, and reward
             legal_actions = game_clone.get_legal_actions() 
-            policy_action = random.choice(legal_actions)  # choose a random action from the legal actions
+
+            # pick a policy action using epsilon-greedy strategy
+            if random.random() < 0.1: # 
+                policy_action = random.choice(legal_actions) # exploration
+            else: 
+                policy_action = max(legal_actions, key=lambda a: self.U.get(tuple(tuple(row) for row in game_clone.simulate_action(a)[0].get_state()), 0))  # exploitation                
+            # policy_action = random.choice(legal_actions)  # use this for baseline testing
+            
             reward += game_clone.simulate_action(policy_action)[1] # get the reward
             trajectory.append((state, policy_action, reward)) 
             depth += 1  # increment the depth counter
