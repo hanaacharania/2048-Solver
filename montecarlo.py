@@ -1,5 +1,5 @@
 import random
-from expectimax import ExpectimaxAI
+from multiprocessing import Pool
 
 class MonteCarloAI:
     def __init__(self, game, gamma=0.9, simulations=1, max_depth=2): # Initialize game, discount factor, number of simulations, and maximum depth
@@ -9,7 +9,6 @@ class MonteCarloAI:
         self.max_depth = max_depth  #
         self.N = {}  # counter of total visits
         self.U = {}  # utility estimates
-        self.expectimax = ExpectimaxAI(game) # initialize Expectimax AI
 
     def getAction(self, game): # returns the best action based on the Monte Carlo Tree Search algorithm
         

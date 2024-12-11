@@ -491,7 +491,7 @@ if __name__ == '__main__':
         panel = GamePanel(grid)
         game2048 = Game(grid, None, choice, testing_mode=True)
         choice_name = 'expectimax' if choice == 'E' else 'montecarlo'
-        num_runs = 100
+        num_runs = 2
         scores = game2048.run_tests(num_runs)
 
         # Plot the scores over the runs

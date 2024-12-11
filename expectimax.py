@@ -17,7 +17,7 @@ class ExpectimaxAI:
             # base case: if the state is terminal or depth is 0, return the score
         
             if depth == 0 or self.is_terminal(state):
-                return self.evaluationFunction(state)
+                return self.calculate_score(state)
 
             # if the agent is max
             if agentIndex == 0:  
@@ -112,9 +112,6 @@ class ExpectimaxAI:
         ]
         return 1 if max_tile in corners else 0
     
-    def evaluationFunction(self, grid): 
-        score = self.calculate_score(grid)
-        return score
     
     def calculate_score(self, grid):
         empty_cells = len(grid.retrieve_empty_cells()) # number of empty cells
