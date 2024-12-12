@@ -1,3 +1,8 @@
+# 2048 Solver Using Expectimax and Monte Carlo Policy Evaluation AI Algorithms
+
+
+
+# Instructions from andersqiu on how to run GUI
 # Introduction
 A GUI 2048 implementation written in Python and tkinter library.
 Both Python 2.x and Python 3.x are supported.
