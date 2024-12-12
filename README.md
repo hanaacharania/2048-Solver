@@ -1,5 +1,5 @@
 # 2048 Solver Using Expectimax and Monte Carlo Policy Evaluation AI Algorithms
-
+By Hanaa Charania and Rachel Lin
 
 
 # Instructions from andersqiu on how to run GUI
