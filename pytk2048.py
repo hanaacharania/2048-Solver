@@ -349,6 +349,7 @@ class Game:
             self.panel.paint()
         self.run_ai()
 
+    # test the AI over multiple runs
     def run_tests(self, num_tests=5):
         scores = []
         highest_tiles = []
@@ -365,14 +366,11 @@ class Game:
             print(f"Test {i + 1}: Final score = {final_score}, Highest tile = {max_tile}")
         
         mean_score = sum(scores) / num_tests
-        std_dev = np.std(scores)
         highest_tile = max(highest_tiles)
         print(f"Mean score: {mean_score}")
-        print(f"highest score: {max(scores)}")
         print(f"Highest tile: {highest_tile}")
-        print(f"Standard deviation: {std_dev}")
+        print(f'Highest score: {max(scores)}')
         return scores
-                
 
     def add_start_cells(self):
         for _ in range(self.start_cells_num):
@@ -400,7 +398,7 @@ class Game:
             return final_score, max_tile
 
         self.grid.clear_flags()
-        move = self.ai.getAction(self)
+        move = self.ai.get_action(self)
 
         if move:
             self.apply_action(move)
@@ -485,16 +483,17 @@ class Game:
 if __name__ == '__main__':
     size = 4
     grid = Grid(size)
+    # user input for AI choice + testing mode
     choice = input("Choose AI: 1. Monte Carlo ('MC') 2. Expectimax ('E')\n")
     testing_mode = input("Testing mode? (y/n)\n")
     if testing_mode == 'y':
         panel = GamePanel(grid)
         game2048 = Game(grid, None, choice, testing_mode=True)
         choice_name = 'expectimax' if choice == 'E' else 'montecarlo'
-        num_runs = 2
+        num_runs = 50
         scores = game2048.run_tests(num_runs)
 
-        # Plot the scores over the runs
+        # plot the scores over the runs
         plt.figure(figsize=(10, 5))
         plt.plot(scores, label=f'{choice_name} AI')
         plt.xlabel('Run')

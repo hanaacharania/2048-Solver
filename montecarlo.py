@@ -1,8 +1,7 @@
 import random
-from multiprocessing import Pool
 
 class MonteCarloAI:
-    def __init__(self, game, gamma=0.9, simulations=1, max_depth=2): # Initialize game, discount factor, number of simulations, and maximum depth
+    def __init__(self, game, gamma=0.3, simulations=50, max_depth=10): # Initialize game, discount factor, number of simulations, and maximum depth
         self.game = game 
         self.gamma = gamma # discount factor
         self.simulations = simulations
@@ -10,7 +9,7 @@ class MonteCarloAI:
         self.N = {}  # counter of total visits
         self.U = {}  # utility estimates
 
-    def getAction(self, game): # returns the best action based on the Monte Carlo Tree Search algorithm
+    def get_action(self, game): # returns the best action based on the Monte Carlo Tree Search algorithm
         
         best_action = None
         best_score = -float('inf')
@@ -39,23 +38,23 @@ class MonteCarloAI:
         while not game_clone.is_game_terminated() and depth < self.max_depth: 
             for row in game_clone.get_state(): 
                 state = tuple(tuple(row)) # convert the state to a tuple to hold state, policy_action, and reward
+            
             legal_actions = game_clone.get_legal_actions() 
-
             # pick a policy action using epsilon-greedy strategy
             if random.random() < 0.1: 
                 policy_action = random.choice(legal_actions) # exploration
             else: # take action w/ highest utility
-                bestAction = None
-                bestUtility = -float('inf')
+                best_action = None
+                best_utility = -float('inf')
                 for action in legal_actions:
-                        nextState = game_clone.simulate_action(action)[0].get_state() 
-                        sTuple = tuple(tuple(row) for row in nextState) 
-                        utility = self.U.get(sTuple, 0) # get the utility of the next state
+                    next_state = game_clone.simulate_action(action)[0].get_state() 
+                    s_tuple = tuple(tuple(row) for row in next_state) 
+                    utility = self.U.get(s_tuple, 0) # get the utility of the next state
 
-                        if utility > bestUtility:
-                            bestUtility = utility
-                            bestAction = action
-                policy_action = bestAction # exploitation
+                    if utility > best_utility:
+                        best_utility = utility
+                        best_action = action
+                policy_action = best_action # exploitation
             # policy_action = random.choice(legal_actions)  # use this for baseline testing
             
             reward += game_clone.simulate_action(policy_action)[1] # get the reward
@@ -63,7 +62,7 @@ class MonteCarloAI:
             depth += 1  # increment the depth counter
 
         # Update utilities estimates based on the trajectory
-        self.updateUtilities(trajectory)
+        self.update_utilities(trajectory)
 
         # return the utility of the initial state of the trajectory
         for row in game.get_state():
@@ -71,12 +70,12 @@ class MonteCarloAI:
         return self.U.get(initial_state, 0) 
     
 
-    def updateUtilities(self, trajectory): # update the utilities based on the trajectory
+    def update_utilities(self, trajectory): # update the utilities based on the trajectory
 
         # print("updating utilities")
         T = len(trajectory)
         for t in range(T):
-            state, _, reward = trajectory[t] # get the state, policy action, and reward
+            state = trajectory[t][0] # get the state, policy action, and reward
             if state not in self.N: # if state was unvisited, initialize the counters
                 self.N[state] = 0 # counter of total visits
                 self.U[state] = 0 # utility estimates

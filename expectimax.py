@@ -5,54 +5,53 @@ class ExpectimaxAI:
         self.game = game
         self.depth = depth
 
-    def getAction(self, game):
-
+    def get_action(self, game):
         """
         returns the expectimax action using self.depth and self.evaluationFunction
 
         all tiles are modeled as choosing uniformly at random from their
         legal moves (i.e. 2, 4).
         """
-        def expectimax(state, depth, agentIndex):
+        def expectimax(state, depth, agent_index):
             # base case: if the state is terminal or depth is 0, return the score
         
             if depth == 0 or self.is_terminal(state):
                 return self.calculate_score(state)
 
             # if the agent is max
-            if agentIndex == 0:  
-                maxVal = float('-inf')
+            if agent_index == 0:  
+                max_val = float('-inf')
                 for action in game.get_legal_actions():
                     grid_copy = self.game.simulate_action(action)[0] # use simulate_action
                     if grid_copy.grid.moved:  # consider valid moves only
-                        maxVal = max(maxVal, expectimax(grid_copy.grid, depth - 1, 1))
-                return maxVal
+                        max_val = max(max_val, expectimax(grid_copy.grid, depth - 1, 1))
+                return max_val
 
             # if the agent is min/random
             else:
-                expectedVal = 0
+                expected_val = 0
                 empty_cells = state.retrieve_empty_cells() 
                 probability = 1 / len(empty_cells) # tile spawns randomly in an empty cell
                 for cell in empty_cells: # ensures all possible tile spawns (i.e. 2,4) are considered
                     grid_copy = state.clone_grid()
                     # print(grid_copy.cells)
                     grid_copy.cells[cell[0]][cell[1]] = 2 # spawn a 2 tile
-                    expectedVal += 0.9 * probability * expectimax(grid_copy, depth - 1, 0) # 90% chance of spawning a 2 tile (known)
+                    expected_val += 0.9 * probability * expectimax(grid_copy, depth - 1, 0) # 90% chance of spawning a 2 tile (known)
                     grid_copy.cells[cell[0]][cell[1]] = 4 # spawn a 4 tile
-                    expectedVal += 0.1 * probability * expectimax(grid_copy, depth - 1, 0) # 10% chance of spawning a 4 tile (known)
-                return expectedVal
+                    expected_val += 0.1 * probability * expectimax(grid_copy, depth - 1, 0) # 10% chance of spawning a 4 tile (known)
+                return expected_val
 
-        bestAction = None
-        bestScore = float('-inf')
+        best_action = None
+        best_score = float('-inf')
         for action in game.get_legal_actions():
             grid_copy = self.game.simulate_action(action)[0]  
             if grid_copy.grid.moved:  # consider valid moves only
                 score = expectimax(grid_copy.grid, self.depth, 1)
-                if score > bestScore:
-                    bestScore = score
-                    bestAction = action
-        print(f"Best move: {bestAction})")
-        return bestAction
+                if score > best_score:
+                    best_score = score
+                    best_action = action
+        # print(f"Best move: {bestAction})")
+        return best_action
     
     def calculate_smoothness(self, grid): # smoothness heuristic = tries to minimize the difference between adjacent tiles
         smoothness = 0
@@ -119,13 +118,13 @@ class ExpectimaxAI:
         smoothness = self.calculate_smoothness(grid)
         border_penalty = self.mid_tile_penalty(grid)
         monotonicity_score = self.monotonicity(grid)
+        # weights of all heuristics
         score = ( 
                  100 * empty_cells + 
                  corner_score +
                  smoothness +
                  1000 + monotonicity_score +
                  -5 * border_penalty)
-
         return score 
 
     def is_terminal(self, state):
